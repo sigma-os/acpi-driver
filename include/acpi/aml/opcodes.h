@@ -1,0 +1,136 @@
+#ifndef SIGMA_ACPI_SERVER_AML_OPCODES
+#define SIGMA_ACPI_SERVER_AML_OPCODES
+
+#include <common.h>
+
+#define DEFINE_OPCODE(name, value) constexpr uint8_t name = value
+#define DEFINE_EXTOP(name, value) constexpr uint8_t ext_##name = value;
+#define DEFINE_L_EXT_OP(name, value) constexpr uint8_t l_ext_##name = value;
+
+namespace acpi::aml::opcodes
+{
+    DEFINE_OPCODE(ZeroOp, 0x00);
+    DEFINE_OPCODE(OneOp, 0x01);
+    DEFINE_OPCODE(AliasOp, 0x06);
+    DEFINE_OPCODE(NameOp, 0x08);
+    DEFINE_OPCODE(BytePrefix, 0x0A);
+    DEFINE_OPCODE(WordPrefix, 0x0B);
+    DEFINE_OPCODE(DWordPrefix, 0x0C);
+    DEFINE_OPCODE(StringPrefix, 0x0D);
+    DEFINE_OPCODE(QWordPrefix, 0x0E);
+    DEFINE_OPCODE(ScopeOp, 0x10);
+    DEFINE_OPCODE(BufferOp, 0x11);
+    DEFINE_OPCODE(PackageOp, 0x12);
+    DEFINE_OPCODE(VarPackageOp, 0x13);
+    DEFINE_OPCODE(MethodOp, 0x14);
+    DEFINE_OPCODE(ExternalOp, 0x15);
+    DEFINE_OPCODE(DualNamePrefix, 0x2E);
+    DEFINE_OPCODE(MultiNamePrefix, 0x2F);
+    DEFINE_OPCODE(ExtOpPrefix, 0x5B);
+    DEFINE_EXTOP(MutexOp, 0x01);
+    DEFINE_EXTOP(EventOp, 0x02);
+    DEFINE_EXTOP(CondRefOfOp, 0x12);
+    DEFINE_EXTOP(CreateFieldOp, 0x13);
+    DEFINE_EXTOP(LoadTableOp, 0x1F);
+    DEFINE_EXTOP(LoadOp, 0x20);
+    DEFINE_EXTOP(StallOp, 0x21);
+    DEFINE_EXTOP(SleepOp, 0x22);
+    DEFINE_EXTOP(AcquireOp, 0x23);
+    DEFINE_EXTOP(SignalOp, 0x24);
+    DEFINE_EXTOP(WaitOp, 0x25);
+    DEFINE_EXTOP(ResetOp, 0x26);
+    DEFINE_EXTOP(ReleaseOp, 0x27);
+    DEFINE_EXTOP(FromBCDOp, 0x28);
+    DEFINE_EXTOP(ToBCD, 0x29);
+    DEFINE_EXTOP(RevisionOp, 0x30);
+    DEFINE_EXTOP(DebugOp, 0x31);
+    DEFINE_EXTOP(FatalOp, 0x32);
+    DEFINE_EXTOP(TimerOp, 0x33);
+    DEFINE_EXTOP(OpRegionOp, 0x80);
+    DEFINE_EXTOP(FieldOp, 0x81);
+    DEFINE_EXTOP(DeviceOp, 0x82);
+    DEFINE_EXTOP(ProcessorOp, 0x83);
+    DEFINE_EXTOP(PowerResOp, 0x84);
+    DEFINE_EXTOP(ThermalZoneOp, 0x85);
+    DEFINE_EXTOP(IndexFieldOp, 0x86);
+    DEFINE_EXTOP(BankFieldOp, 0x87);
+    DEFINE_EXTOP(DataRegionOp, 0x88);
+    DEFINE_OPCODE(RootChar, 0x5C);
+    DEFINE_OPCODE(ParentPrefixChar, 0x5E);
+    DEFINE_OPCODE(NameChar, 0x5F);
+    DEFINE_OPCODE(Local0Op, 0x60);
+    DEFINE_OPCODE(Local1Op, 0x61);
+    DEFINE_OPCODE(Local2Op, 0x62);
+    DEFINE_OPCODE(Local3Op, 0x63);
+    DEFINE_OPCODE(Local4Op, 0x64);
+    DEFINE_OPCODE(Local5Op, 0x65);
+    DEFINE_OPCODE(Local6Op, 0x66);
+    DEFINE_OPCODE(Local7Op, 0x67);
+    DEFINE_OPCODE(Arg0Op, 0x68);
+    DEFINE_OPCODE(Arg1Op, 0x69);
+    DEFINE_OPCODE(Arg2Op, 0x6A);
+    DEFINE_OPCODE(Arg3Op, 0x6B);
+    DEFINE_OPCODE(Arg4Op, 0x6C);
+    DEFINE_OPCODE(Arg5Op, 0x6D);
+    DEFINE_OPCODE(Arg6Op, 0x6E);
+    DEFINE_OPCODE(StoreOp, 0x70);
+    DEFINE_OPCODE(RefOfOp, 0x71);
+    DEFINE_OPCODE(AddOp, 0x72);
+    DEFINE_OPCODE(ConcatOp, 0x73);
+    DEFINE_OPCODE(SubtractOp, 0x74);
+    DEFINE_OPCODE(IncrementOp, 0x75);
+    DEFINE_OPCODE(DecrementOp, 0x76);
+    DEFINE_OPCODE(MultiplyOp, 0x77);
+    DEFINE_OPCODE(DivideOp, 0x78);
+    DEFINE_OPCODE(ShiftLeftOp, 0x79);
+    DEFINE_OPCODE(ShiftRightOp, 0x7A);
+    DEFINE_OPCODE(AndOp, 0x7B);
+    DEFINE_OPCODE(NandOp, 0x7C);
+    DEFINE_OPCODE(OrOp, 0x7D);
+    DEFINE_OPCODE(NorOp, 0x7E);
+    DEFINE_OPCODE(XorOp, 0x7F);
+    DEFINE_OPCODE(NotOp, 0x80);
+    DEFINE_OPCODE(FindSetLeftBitOp, 0x81);
+    DEFINE_OPCODE(FindSetRightBitOp, 0x82);
+    DEFINE_OPCODE(DerefOfOp, 0x83);
+    DEFINE_OPCODE(ConcatResOp, 0x84);
+    DEFINE_OPCODE(ModOp, 0x85);
+    DEFINE_OPCODE(NotifyOp, 0x86);
+    DEFINE_OPCODE(SizeOfOp, 0x87);
+    DEFINE_OPCODE(IndexOp, 0x88);
+    DEFINE_OPCODE(MatchOp, 0x89);
+    DEFINE_OPCODE(CreateDWordFieldOp, 0x8A);
+    DEFINE_OPCODE(CreateWordFieldOp, 0x8B);
+    DEFINE_OPCODE(CreateByteFieldOp, 0x8C);
+    DEFINE_OPCODE(CreateBitFieldOp, 0x8D);
+    DEFINE_OPCODE(ObjectTypeOp, 0x8E);
+    DEFINE_OPCODE(CreateQWordFieldOp, 0x8F);
+    DEFINE_OPCODE(LandOp, 0x90);
+    DEFINE_OPCODE(LorOp, 0x91);
+    DEFINE_OPCODE(LnotOp, 0x92);
+    DEFINE_L_EXT_OP(LNotEqualOp, 0x93);
+    DEFINE_L_EXT_OP(LLessEqualOp, 0x94)
+    DEFINE_L_EXT_OP(LGreaterEqualOp, 0x95);
+    DEFINE_OPCODE(LEqualOp, 0x93);
+    DEFINE_OPCODE(LGreaterOp, 0x94);
+    DEFINE_OPCODE(LLessOp, 0x95);
+    DEFINE_OPCODE(ToBufferOp, 0x96);
+    DEFINE_OPCODE(ToDecimalStringOp, 0x97);
+    DEFINE_OPCODE(ToHexStringOp, 0x98);
+    DEFINE_OPCODE(ToIntegerOp, 0x99);
+    DEFINE_OPCODE(ToStringOp, 0x9C);
+    DEFINE_OPCODE(CopyObjectOp, 0x9D);
+    DEFINE_OPCODE(MidOp, 0x9E);
+    DEFINE_OPCODE(ContinueOp, 0x9F);
+    DEFINE_OPCODE(IfOp, 0xA0);
+    DEFINE_OPCODE(ElseOp, 0xA1);
+    DEFINE_OPCODE(WhileOp, 0xA2);
+    DEFINE_OPCODE(NoopOp, 0xA3);
+    DEFINE_OPCODE(ReturnOp, 0xA4);
+    DEFINE_OPCODE(BreakOp, 0xA5);
+    DEFINE_OPCODE(BreakPointOp, 0xCC);
+    DEFINE_OPCODE(OnesOp, 0xFF);
+} // namespace acpi::aml::opcodes
+
+
+#endif

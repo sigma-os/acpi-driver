@@ -10,7 +10,7 @@ configure_file(input: 'include/config.h.in', output: 'config.h', configuration: 
 
 deps = []
 
-sources = ['source/main.cpp', 'source/linux/dump.cpp']
+sources = ['source/main.cpp', 'source/linux/dump.cpp', 'source/acpi/tables.cpp', 'source/acpi/aml/parse.cpp']
 
 includes = include_directories('include')
 
