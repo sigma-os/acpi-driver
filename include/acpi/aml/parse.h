@@ -5,17 +5,26 @@
 
 #include <acpi/tables.h>
 
+#include <acpi/aml/opcodes.h>
+
 namespace acpi::aml
 {
     
     class parser {
         public:
-        parser(acpi::tables::table* table): aml_table(table) {}
+        parser(acpi::tables::table* table): ip(0), code(table->data) {}
 
         void parse();
 
         private:
-        acpi::tables::table* aml_table;
+
+        void parse_opcode();
+        void parse_ext_opcode();
+
+        size_t parse_pkglength();
+
+        uint64_t ip;
+        uint8_t* code;
     };
 } // namespace acpi::aml
 
