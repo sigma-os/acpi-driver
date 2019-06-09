@@ -1,0 +1,7 @@
+#ifndef SIGMA_ACPI_SERVER_CONFIG
+#define SIGMA_ACPI_SERVER_CONFIG
+
+#define VERSION_STR "@version@"
+#define EXECUTABLE_NAME "@executable_name@"
+
+#endif
