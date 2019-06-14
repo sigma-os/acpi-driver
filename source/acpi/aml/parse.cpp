@@ -118,15 +118,24 @@ std::string acpi::aml::parser::parse_namestring(size_t& n_bytes_parsed){
 
 
 void acpi::aml::parser::parse_scopeop(){
+    acpi::aml::aot_node node;
+
+    node.byte_offset = this->ip;
+    node.type = "Scope";
+
     size_t n_pkglength_bytes;
     size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    node.pkg_length = pkglength;
     pkglength -= n_pkglength_bytes;
 
     size_t n_namestring_bytes;
     std::string s = this->parse_namestring(n_namestring_bytes);
+    node.name = s;
     pkglength -= n_namestring_bytes;
 
-    this->parse_termlist(pkglength);
+    //this->parse_termlist(pkglength);
+
+    this->abstract_object_tree.insert(*(this->abstract_object_tree.get_root()), node); // TODO: Don't use root but use current descent in class global var
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
@@ -135,11 +144,6 @@ void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
     while(this->ip < (original_ip + bytes_to_parse)){
         this->parse_opcode();
     }
-}
-
-void acpi::aml::parser::parse(){
-    this->parse_termlist(this->code_header->length - sizeof(acpi::tables::sdt_header)); // Start recursive descent
-    return;
 }
 
 void acpi::aml::parser::parse_ext_opcode(){
@@ -172,4 +176,20 @@ void acpi::aml::parser::parse_opcode(){
         throw std::runtime_error("Undefined opcode");
         break;
     }
+}
+
+void acpi::aml::parser::parse(){
+    acpi::aml::aot_node& root = this->abstract_object_tree.get_root()->item;
+
+    root.name = "[Root]";
+    root.type = "[Root]";
+    root.byte_offset = 0;
+    root.pkg_length = this->code_header->length - sizeof(acpi::tables::sdt_header);
+
+    this->parse_termlist(this->code_header->length - sizeof(acpi::tables::sdt_header)); // Start recursive descent
+    return;
+}
+
+tree<acpi::aml::aot_node>& acpi::aml::parser::get_tree(){
+    return this->abstract_object_tree;
 }

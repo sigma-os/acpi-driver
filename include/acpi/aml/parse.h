@@ -6,6 +6,9 @@
 #include <acpi/tables.h>
 
 #include <acpi/aml/opcodes.h>
+#include <acpi/aml/aot_node.h>
+
+#include <types/tree.h>
 
 #define IS_LEADNAMECHAR(a) ((((a) >= 'A' && (a) <= 'Z') || ((a) == '_')))
 #define IS_DIGITCHAR(a) ((a) >= '0' && (a) <= '9')
@@ -19,6 +22,7 @@ namespace acpi::aml
         parser(acpi::tables::table* table): ip(0), code(table->data), code_header(reinterpret_cast<acpi::tables::sdt_header*>(table)) {}
 
         void parse();
+        tree<acpi::aml::aot_node>& get_tree();
 
         private:
 
@@ -41,6 +45,7 @@ namespace acpi::aml
         uint64_t ip;
         uint8_t* code;
         acpi::tables::sdt_header* code_header;
+        tree<acpi::aml::aot_node> abstract_object_tree;
     };
 } // namespace acpi::aml
 

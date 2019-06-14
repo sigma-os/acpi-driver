@@ -45,7 +45,8 @@ class tree {
     tree_node<T>* root;
 
     void print_internal(std::string& prefix, tree_node<T>* node){
-        std::cout << prefix << "├──" << node->item << std::endl;
+        std::cout << prefix << "├──";
+        std::cout << node->item << std::endl;
 
         for(auto* child : node->children){
             std::string next_prefix;
