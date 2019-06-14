@@ -16,11 +16,14 @@ namespace acpi::aml
     
     class parser {
         public:
-        parser(acpi::tables::table* table): ip(0), code(table->data) {}
+        parser(acpi::tables::table* table): ip(0), code(table->data), code_header(reinterpret_cast<acpi::tables::sdt_header*>(table)) {}
 
         void parse();
 
         private:
+
+        uint8_t parse_next_byte();
+        uint8_t lookahead_byte(int64_t bytes);
 
         void parse_opcode();
         void parse_ext_opcode();
@@ -31,11 +34,13 @@ namespace acpi::aml
 
         std::string parse_nameseg(size_t& n_bytes_parsed);
 
+        void parse_termlist(size_t bytes_to_parse);
 
         void parse_scopeop();
 
         uint64_t ip;
         uint8_t* code;
+        acpi::tables::sdt_header* code_header;
     };
 } // namespace acpi::aml
 
