@@ -93,6 +93,8 @@ std::string acpi::aml::parser::parse_namepath(size_t& n_bytes_parsed){
         break;
 
     case 0x0: // NullName
+        this->parse_next_byte();
+        n_bytes_parsed++;
         return std::string();
     
     default:
@@ -137,7 +139,8 @@ void acpi::aml::parser::parse_scopeop(){
     acpi::aml::aot_node node;
 
     node.byte_offset = this->ip;
-    node.type = "Scope";
+    node.type = acpi::aml::aot_node_types::SCOPE;
+    node.reparse = false;
 
     size_t n_pkglength_bytes;
     size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
@@ -152,6 +155,8 @@ void acpi::aml::parser::parse_scopeop(){
     tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
     this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
 
+    std::cout << std::hex << "0x" << (uint64_t)this->lookahead_byte(0);
+
     this->parse_termlist(pkglength);
 
     this->current_parent = previous_parent;
@@ -160,7 +165,8 @@ void acpi::aml::parser::parse_scopeop(){
 void acpi::aml::parser::parse_processorop(){
     acpi::aml::aot_node node;
     node.byte_offset = this->ip;
-    node.type = "Processor";
+    node.type = acpi::aml::aot_node_types::PROCESSOR;
+    node.reparse = false;
 
     size_t n_pkglength_bytes;
     size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
@@ -234,7 +240,7 @@ void acpi::aml::parser::parse(){
     acpi::aml::aot_node& root = this->abstract_object_tree.get_root()->item;
 
     root.name = "[Root]";
-    root.type = "[Root]";
+    root.type = acpi::aml::aot_node_types::ROOT;
     root.byte_offset = 0;
     root.pkg_length = this->code_header->length - sizeof(acpi::tables::sdt_header);
 
