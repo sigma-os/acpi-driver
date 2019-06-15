@@ -155,8 +155,6 @@ void acpi::aml::parser::parse_scopeop(){
     tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
     this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
 
-    std::cout << std::hex << "0x" << (uint64_t)this->lookahead_byte(0);
-
     this->parse_termlist(pkglength);
 
     this->current_parent = previous_parent;
@@ -189,6 +187,31 @@ void acpi::aml::parser::parse_processorop(){
     this->parse_termlist(pkglength);
 
     this->current_parent = previous_parent;
+}
+
+void acpi::aml::parser::parse_methodop(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type = acpi::aml::aot_node_types::METHOD;
+    node.reparse = true;
+
+    size_t n_pkglength_bytes;
+    size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    node.pkg_length = pkglength;
+    pkglength -= n_pkglength_bytes;
+
+    size_t n_namestring_bytes;
+    std::string s = this->parse_namestring(n_namestring_bytes);
+    node.name = s;
+    pkglength -= n_namestring_bytes;
+
+    this->parse_bytedata(); // TODO: Actually put info necessary for reparsing in node
+    pkglength -= 1;
+
+    // Don't Parse termlist, it is only done when executing instructions
+    this->ip += pkglength;
+
+    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
@@ -227,6 +250,10 @@ void acpi::aml::parser::parse_opcode(){
 
     case acpi::aml::opcodes::ScopeOp:
         this->parse_scopeop();
+        break;
+
+    case acpi::aml::opcodes::MethodOp:
+        this->parse_methodop();
         break;
 
     default:

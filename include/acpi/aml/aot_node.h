@@ -5,9 +5,9 @@
 
 namespace acpi::aml
 {
-    enum class aot_node_types {ROOT, SCOPE, PROCESSOR};
+    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD};
 
-    // Abstract Object Tree node
+    // Abstract Object Tree node, TODO: Add type specific info
     struct aot_node {
         std::string name;
         acpi::aml::aot_node_types type;
@@ -32,6 +32,10 @@ namespace acpi::aml
 
             case acpi::aml::aot_node_types::ROOT:
                 return "Root";
+                break;
+
+            case acpi::aml::aot_node_types::METHOD:
+                return "Method";
                 break;
             
             default:
