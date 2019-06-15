@@ -10,6 +10,19 @@ uint8_t acpi::aml::parser::lookahead_byte(int64_t bytes){
     return this->code[this->ip + bytes];
 }
 
+uint8_t acpi::aml::parser::parse_bytedata(){
+    return this->parse_next_byte();
+}
+uint16_t acpi::aml::parser::parse_worddata(){
+    return (this->parse_bytedata() | ((uint16_t)this->parse_bytedata() << 8));
+}
+uint32_t acpi::aml::parser::parse_dworddata(){
+    return (this->parse_worddata() | ((uint32_t)this->parse_worddata() << 16));
+}
+uint64_t acpi::aml::parser::parse_qworddata(){
+    return (this->parse_dworddata() | ((uint64_t)this->parse_dworddata() << 32));
+}
+
 // PkgLength includes itself but not the opcode and not the extended opcode
 size_t acpi::aml::parser::parse_pkglength(size_t& n_bytes_parsed){
     uint8_t PkgLeadByte = this->parse_next_byte();
@@ -67,7 +80,6 @@ std::string acpi::aml::parser::parse_nameseg(size_t& n_bytes_parsed){
 std::string acpi::aml::parser::parse_namepath(size_t& n_bytes_parsed){
     n_bytes_parsed = 0;
     uint8_t char1 = this->lookahead_byte(0);
-    n_bytes_parsed++;
 
     std::string string;
 
@@ -96,24 +108,28 @@ std::string acpi::aml::parser::parse_namepath(size_t& n_bytes_parsed){
 std::string acpi::aml::parser::parse_namestring(size_t& n_bytes_parsed){
     n_bytes_parsed = 0;
 
-    uint8_t char1 = this->parse_next_byte();
-    n_bytes_parsed++;
+    uint8_t char1 = this->lookahead_byte(0);
 
     std::string string;
 
-    if(char1 == '^'){
-        throw std::runtime_error("PrefixPath is unimplemented, TODO");
-    }
+    if(char1 == '^'){ // Probably not the best method but just skip the '^'
+        while(this->parse_next_byte() == '^') n_bytes_parsed++;
 
+    } 
+    
     if(char1 == acpi::aml::opcodes::RootChar){
+        string.push_back(this->parse_next_byte());
+        n_bytes_parsed++;
         size_t name_path_bytes;
         string.append(this->parse_namepath(name_path_bytes));
         n_bytes_parsed += name_path_bytes;
-
-        return string;
+    } else {
+        size_t name_path_bytes;
+        string.append(this->parse_namepath(name_path_bytes));
+        n_bytes_parsed += name_path_bytes;
     }
 
-    throw std::runtime_error("Invalid NameString first character");
+    return string;
 }
 
 
@@ -133,12 +149,38 @@ void acpi::aml::parser::parse_scopeop(){
     node.name = s;
     pkglength -= n_namestring_bytes;
 
-    //this->parse_termlist(pkglength);
-
     this->abstract_object_tree.insert(*(this->abstract_object_tree.get_root()), node); // TODO: Don't use root but use current descent in class global var
+
+    this->parse_termlist(pkglength);
+}
+
+void acpi::aml::parser::parse_processorop(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type = "Processor";
+
+    size_t n_pkglength_bytes;
+    size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    node.pkg_length = pkglength;
+    pkglength -= n_pkglength_bytes;
+
+    size_t n_namestring_bytes;
+    std::string s = this->parse_namestring(n_namestring_bytes);
+    node.name = s;
+    pkglength -= n_namestring_bytes;
+
+    this->parse_bytedata(); // ProcID
+    this->parse_dworddata(); // PblkAddr
+    this->parse_bytedata(); // PblkLen
+    pkglength -= 6;
+
+    this->abstract_object_tree.insert(*(this->abstract_object_tree.get_root()), node);
+
+    this->parse_termlist(pkglength);
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
+    if(bytes_to_parse == 0) return;
     uint64_t original_ip = this->ip;
 
     while(this->ip < (original_ip + bytes_to_parse)){
@@ -151,6 +193,10 @@ void acpi::aml::parser::parse_ext_opcode(){
 
     switch (ext_opcode)
     {
+    case acpi::aml::opcodes::ext_ProcessorOp:
+        this->parse_processorop();
+        break;
+
     default:
         std::cerr << "Undefined extended opcode: 0x" << std::hex << static_cast<uint64_t>(ext_opcode) << std::endl;
         throw std::runtime_error("Undefined extended opcode");

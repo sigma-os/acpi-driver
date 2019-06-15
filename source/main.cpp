@@ -16,7 +16,7 @@ int main(){
 		parser.parse();
 	} catch(std::exception& e){
 		std::cerr << "Caught Parser Exception: " << e.what() << std::endl;
-		std::cerr << "Printing current Abstract Object Tree to stdout" << std::endl;
+		std::cerr << std::endl << "Printing current Abstract Object Tree to stdout" << std::endl;
 		parser.get_tree().print();
 
 		return EXIT_FAILURE;

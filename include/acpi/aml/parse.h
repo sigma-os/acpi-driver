@@ -10,8 +10,8 @@
 
 #include <types/tree.h>
 
-#define IS_LEADNAMECHAR(a) ((((a) >= 'A' && (a) <= 'Z') || ((a) == '_')))
-#define IS_DIGITCHAR(a) ((a) >= '0' && (a) <= '9')
+#define IS_LEADNAMECHAR(a) (((((a) >= 'A') && ((a) <= 'Z')) || ((a) == '_')))
+#define IS_DIGITCHAR(a) (((a) >= '0') && ((a) <= '9'))
 #define IS_NAMECHAR(a) ((IS_LEADNAMECHAR((a))) || (IS_DIGITCHAR((a))))
 
 namespace acpi::aml
@@ -35,12 +35,17 @@ namespace acpi::aml
         size_t parse_pkglength(size_t& n_bytes_parsed);
         std::string parse_namestring(size_t& n_bytes_parsed);
         std::string parse_namepath(size_t& n_bytes_parsed);
-
         std::string parse_nameseg(size_t& n_bytes_parsed);
+
+        uint8_t parse_bytedata();
+        uint16_t parse_worddata();
+        uint32_t parse_dworddata();
+        uint64_t parse_qworddata();
 
         void parse_termlist(size_t bytes_to_parse);
 
         void parse_scopeop();
+        void parse_processorop();
 
         uint64_t ip;
         uint8_t* code;
