@@ -51,6 +51,7 @@ namespace acpi::aml
         uint8_t* code;
         acpi::tables::sdt_header* code_header;
         tree<acpi::aml::aot_node> abstract_object_tree;
+        tree_node<acpi::aml::aot_node>* current_parent;
     };
 } // namespace acpi::aml
 

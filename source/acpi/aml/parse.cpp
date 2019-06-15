@@ -149,9 +149,12 @@ void acpi::aml::parser::parse_scopeop(){
     node.name = s;
     pkglength -= n_namestring_bytes;
 
-    this->abstract_object_tree.insert(*(this->abstract_object_tree.get_root()), node); // TODO: Don't use root but use current descent in class global var
+    tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
+    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
 
     this->parse_termlist(pkglength);
+
+    this->current_parent = previous_parent;
 }
 
 void acpi::aml::parser::parse_processorop(){
@@ -174,9 +177,12 @@ void acpi::aml::parser::parse_processorop(){
     this->parse_bytedata(); // PblkLen
     pkglength -= 6;
 
-    this->abstract_object_tree.insert(*(this->abstract_object_tree.get_root()), node);
+    tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
+    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
 
     this->parse_termlist(pkglength);
+
+    this->current_parent = previous_parent;
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
@@ -231,6 +237,8 @@ void acpi::aml::parser::parse(){
     root.type = "[Root]";
     root.byte_offset = 0;
     root.pkg_length = this->code_header->length - sizeof(acpi::tables::sdt_header);
+
+    current_parent = this->abstract_object_tree.get_root();
 
     this->parse_termlist(this->code_header->length - sizeof(acpi::tables::sdt_header)); // Start recursive descent
     return;
