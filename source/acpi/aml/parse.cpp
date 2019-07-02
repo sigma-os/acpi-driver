@@ -151,7 +151,7 @@ void acpi::aml::parser::parse_scopeop(){
     acpi::aml::aot_node node;
 
     node.byte_offset = this->ip;
-    node.type = acpi::aml::aot_node_types::SCOPE;
+    node.type_specific_data.type = acpi::aml::aot_node_types::SCOPE;
     node.reparse = false;
 
     auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
@@ -173,7 +173,7 @@ void acpi::aml::parser::parse_scopeop(){
 void acpi::aml::parser::parse_processorop(){
     acpi::aml::aot_node node;
     node.byte_offset = this->ip;
-    node.type = acpi::aml::aot_node_types::PROCESSOR;
+    node.type_specific_data.processor.type = acpi::aml::aot_node_types::PROCESSOR;
     node.reparse = false;
 
     auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
@@ -184,9 +184,9 @@ void acpi::aml::parser::parse_processorop(){
     node.name = s;
     pkglength -= n_namestring_bytes;
 
-    this->parse_bytedata(); // ProcID
-    this->parse_dworddata(); // PblkAddr
-    this->parse_bytedata(); // PblkLen
+    node.type_specific_data.processor.processor_id = this->parse_bytedata();
+    node.type_specific_data.processor.pblk_addr = this->parse_dworddata();
+    node.type_specific_data.processor.pblk_len = this->parse_bytedata();
     pkglength -= 6;
 
     tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
@@ -200,7 +200,7 @@ void acpi::aml::parser::parse_processorop(){
 void acpi::aml::parser::parse_methodop(){
     acpi::aml::aot_node node;
     node.byte_offset = this->ip;
-    node.type = acpi::aml::aot_node_types::METHOD;
+    node.type_specific_data.method.type = acpi::aml::aot_node_types::METHOD;
     node.reparse = true;
 
     auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
@@ -211,7 +211,7 @@ void acpi::aml::parser::parse_methodop(){
     node.name = s;
     pkglength -= n_namestring_bytes;
 
-    this->parse_bytedata(); // TODO: Actually put info necessary for reparsing in node
+    node.type_specific_data.method.method_flags = this->parse_bytedata();
     pkglength -= 1;
 
     // Don't Parse termlist, it is only done when executing instructions
@@ -273,7 +273,7 @@ void acpi::aml::parser::parse(){
     acpi::aml::aot_node& root = this->abstract_object_tree.get_root()->item;
 
     root.name = "[Root]";
-    root.type = acpi::aml::aot_node_types::ROOT;
+    root.type_specific_data.type = acpi::aml::aot_node_types::ROOT;
     root.byte_offset = 0;
     root.pkg_length = this->code_header->length - sizeof(acpi::tables::sdt_header);
 
