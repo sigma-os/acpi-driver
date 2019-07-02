@@ -32,10 +32,10 @@ namespace acpi::aml
         void parse_opcode();
         void parse_ext_opcode();
 
-        size_t parse_pkglength(size_t& n_bytes_parsed);
-        std::string parse_namestring(size_t& n_bytes_parsed);
-        std::string parse_namepath(size_t& n_bytes_parsed);
-        std::string parse_nameseg(size_t& n_bytes_parsed);
+        std::pair<size_t, size_t> parse_pkglength();
+        std::pair<std::string, size_t> parse_namestring();
+        std::pair<std::string, size_t> parse_namepath();
+        std::pair<std::string, size_t> parse_nameseg();
 
         uint8_t parse_bytedata();
         uint16_t parse_worddata();

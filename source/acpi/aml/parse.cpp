@@ -24,34 +24,50 @@ uint64_t acpi::aml::parser::parse_qworddata(){
 }
 
 // PkgLength includes itself but not the opcode and not the extended opcode
-size_t acpi::aml::parser::parse_pkglength(size_t& n_bytes_parsed){
+std::pair<size_t, size_t> acpi::aml::parser::parse_pkglength(){
     uint8_t PkgLeadByte = this->parse_next_byte();
 
     uint8_t n_bytedata = (PkgLeadByte >> 6) & 0x3;
 
-    n_bytes_parsed = (n_bytedata + 1);
+    size_t n_bytes_parsed = (n_bytedata + 1);
+    size_t ret;
 
-    if(n_bytedata == 0) return PkgLeadByte & 0x3F;
-    else if(n_bytedata == 1){
-        uint8_t byte1 = this->parse_next_byte();
-        return ((PkgLeadByte & 0x0F) | (byte1 << 4));
-    } else if(n_bytedata == 2){
-        uint8_t byte1 = this->parse_next_byte();
-        uint8_t byte2 = this->parse_next_byte();
-        return ((PkgLeadByte & 0x0F) | (byte1 << 4) | (byte2 << 12));
-    } else if(n_bytedata == 3){
-        uint8_t byte1 = this->parse_next_byte();
-        uint8_t byte2 = this->parse_next_byte();
-        uint8_t byte3 = this->parse_next_byte();
-        return ((PkgLeadByte & 0x0F) | (byte1 << 4) | (byte2 << 12) | (byte3 << 20));
-    } 
+    switch (n_bytedata)
+    {
+    case 3:
+        {
+            uint8_t byte1 = this->parse_next_byte();    
+            uint8_t byte2 = this->parse_next_byte();
+            uint8_t byte3 = this->parse_next_byte();
+            ret = ((PkgLeadByte & 0x0F) | (byte1 << 4) | (byte2 << 12) | (byte3 << 20));
+        }
+        break;
+    case 2:
+        {
+            uint8_t byte1 = this->parse_next_byte();
+            uint8_t byte2 = this->parse_next_byte();
+            ret = ((PkgLeadByte & 0x0F) | (byte1 << 4) | (byte2 << 12));
+        }
+        break;
+    case 1:
+        {
+            uint8_t byte1 = this->parse_next_byte();
+            ret = ((PkgLeadByte & 0x0F) | (byte1 << 4));
+        }
+        break;
+    case 0:
+        ret = PkgLeadByte & 0x3F;
+        break;
+    default:
+        throw std::runtime_error("Impossible n_bytedata in parse_pkglength");
+        break;
+    }
     
-    std::cerr << "Impossible to reach";
-    return 0;
+    return std::pair<size_t, size_t>(n_bytes_parsed, ret);
 }
 
-std::string acpi::aml::parser::parse_nameseg(size_t& n_bytes_parsed){
-    n_bytes_parsed = 0;
+std::pair<std::string, size_t> acpi::aml::parser::parse_nameseg(){
+    size_t n_bytes_parsed = 0;
 
     std::string string;
     uint8_t char1 = this->parse_next_byte();
@@ -74,11 +90,11 @@ std::string acpi::aml::parser::parse_nameseg(size_t& n_bytes_parsed){
     string.push_back(char4);
     n_bytes_parsed++;
 
-    return string;
+    return std::pair<std::string, size_t>(string, n_bytes_parsed);
 }
 
-std::string acpi::aml::parser::parse_namepath(size_t& n_bytes_parsed){
-    n_bytes_parsed = 0;
+std::pair<std::string, size_t> acpi::aml::parser::parse_namepath(){
+    size_t n_bytes_parsed = 0;
     uint8_t char1 = this->lookahead_byte(0);
 
     std::string string;
@@ -95,20 +111,20 @@ std::string acpi::aml::parser::parse_namepath(size_t& n_bytes_parsed){
     case 0x0: // NullName
         this->parse_next_byte();
         n_bytes_parsed++;
-        return std::string();
+        return std::pair<std::string, size_t>(std::string(), n_bytes_parsed);
     
     default:
-        size_t name_seg_bytes;
-        string.append(this->parse_nameseg(name_seg_bytes)); // Append this
+        auto [seg, name_seg_bytes] = this->parse_nameseg();
+        string.append(seg); // Append this
         n_bytes_parsed += name_seg_bytes;
         break;
     }
 
-    return string;
+    return std::pair<std::string, size_t>(string, n_bytes_parsed);
 }
 
-std::string acpi::aml::parser::parse_namestring(size_t& n_bytes_parsed){
-    n_bytes_parsed = 0;
+std::pair<std::string, size_t> acpi::aml::parser::parse_namestring(){
+    size_t n_bytes_parsed = 0;
 
     uint8_t char1 = this->lookahead_byte(0);
 
@@ -122,16 +138,12 @@ std::string acpi::aml::parser::parse_namestring(size_t& n_bytes_parsed){
     if(char1 == acpi::aml::opcodes::RootChar){
         string.push_back(this->parse_next_byte());
         n_bytes_parsed++;
-        size_t name_path_bytes;
-        string.append(this->parse_namepath(name_path_bytes));
-        n_bytes_parsed += name_path_bytes;
-    } else {
-        size_t name_path_bytes;
-        string.append(this->parse_namepath(name_path_bytes));
-        n_bytes_parsed += name_path_bytes;
     }
+    auto [path, name_path_bytes] = this->parse_namepath();
+    string.append(path);
+    n_bytes_parsed += name_path_bytes;
 
-    return string;
+    return std::pair<std::string, size_t>(string, n_bytes_parsed);
 }
 
 
@@ -142,13 +154,11 @@ void acpi::aml::parser::parse_scopeop(){
     node.type = acpi::aml::aot_node_types::SCOPE;
     node.reparse = false;
 
-    size_t n_pkglength_bytes;
-    size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
     node.pkg_length = pkglength;
     pkglength -= n_pkglength_bytes;
 
-    size_t n_namestring_bytes;
-    std::string s = this->parse_namestring(n_namestring_bytes);
+    auto [s, n_namestring_bytes] = this->parse_namestring();
     node.name = s;
     pkglength -= n_namestring_bytes;
 
@@ -166,13 +176,11 @@ void acpi::aml::parser::parse_processorop(){
     node.type = acpi::aml::aot_node_types::PROCESSOR;
     node.reparse = false;
 
-    size_t n_pkglength_bytes;
-    size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
     node.pkg_length = pkglength;
     pkglength -= n_pkglength_bytes;
 
-    size_t n_namestring_bytes;
-    std::string s = this->parse_namestring(n_namestring_bytes);
+    auto [s, n_namestring_bytes] = this->parse_namestring();
     node.name = s;
     pkglength -= n_namestring_bytes;
 
@@ -195,13 +203,11 @@ void acpi::aml::parser::parse_methodop(){
     node.type = acpi::aml::aot_node_types::METHOD;
     node.reparse = true;
 
-    size_t n_pkglength_bytes;
-    size_t pkglength = this->parse_pkglength(n_pkglength_bytes);
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
     node.pkg_length = pkglength;
     pkglength -= n_pkglength_bytes;
 
-    size_t n_namestring_bytes;
-    std::string s = this->parse_namestring(n_namestring_bytes);
+    auto [s, n_namestring_bytes] = this->parse_namestring();
     node.name = s;
     pkglength -= n_namestring_bytes;
 
