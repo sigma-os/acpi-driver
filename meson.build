@@ -13,7 +13,8 @@ deps = []
 sources = files('source/main.cpp',
                 'source/linux/dump.cpp',
                 'source/acpi/tables.cpp',
-                'source/acpi/aml/parse.cpp')
+                'source/acpi/aml/parse.cpp',
+                'source/acpi/aml/aml_types.cpp')
 
 includes = include_directories('include')
 

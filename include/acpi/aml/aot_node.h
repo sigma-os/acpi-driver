@@ -5,7 +5,7 @@
 
 namespace acpi::aml
 {
-    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD};
+    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD, OPREGION};
 
     struct aot_node {
         std::string name;
@@ -29,6 +29,13 @@ namespace acpi::aml
                 uint8_t method_flags;
             };
             _method method;
+            struct _opregion {
+                acpi::aml::aot_node_types type;
+                uint8_t space;
+                uint64_t offset; // TermArg => Integer
+                uint64_t len; // TermArg => Integer
+            };
+            _opregion opregion;
         };
         _type_specific_data type_specific_data;
         
@@ -56,6 +63,10 @@ namespace acpi::aml
                 return "Method";
                 break;
             
+            case acpi::aml::aot_node_types::OPREGION:
+                return "OpRegion";
+                break;
+            
             default:
                 return "Undefined";
                 break;
@@ -76,6 +87,12 @@ namespace acpi::aml
                 stream << "[Method: Flags: 0x";
                 stream << std::hex << static_cast<uint64_t>(type.method.method_flags);
                 stream << "]";
+                break;
+            case acpi::aml::aot_node_types::OPREGION:
+                stream << "[OpRegion: Space: 0x";
+                stream << std::hex << static_cast<uint64_t>(type.opregion.type) << ", Offset: 0x";
+                stream << std::hex << type.opregion.offset << ", Size: 0x";
+                stream << std::hex << type.opregion.len << "]";
                 break;
             default:
                 stream << "None";

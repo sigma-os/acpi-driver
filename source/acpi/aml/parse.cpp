@@ -217,7 +217,34 @@ void acpi::aml::parser::parse_methodop(){
     // Don't Parse termlist, it is only done when executing instructions
     this->ip += pkglength;
 
-    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
+    this->abstract_object_tree.insert(*(this->current_parent), node);
+}
+
+void acpi::aml::parser::parse_opregion(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type_specific_data.opregion.type = acpi::aml::aot_node_types::OPREGION;
+    node.reparse = false;
+
+    node.pkg_length = 0;
+
+    auto [name, name_bytes] = this->parse_namestring();
+    node.name = name;
+    node.pkg_length += name_bytes;
+
+    uint8_t RegionSpace = this->parse_next_byte();
+    node.pkg_length++;
+    node.type_specific_data.opregion.space = RegionSpace;
+
+    auto [RegionOffset, regionoffset_size] = this->parse_termarg(acpi::aml::TermArgsTypes::Integer);
+    node.pkg_length += regionoffset_size;
+    node.type_specific_data.opregion.offset = RegionOffset.termarg.integer.data;
+
+    auto [RegionLen, regionlen_size] = this->parse_termarg(acpi::aml::TermArgsTypes::Integer);
+    node.pkg_length += regionlen_size;
+    node.type_specific_data.opregion.len = RegionLen.termarg.integer.data;
+
+    this->abstract_object_tree.insert(*(this->current_parent), node);
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
@@ -229,6 +256,64 @@ void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
     }
 }
 
+std::pair<acpi::aml::TermArg, size_t> acpi::aml::parser::parse_termarg_integer(){
+    uint8_t next_byte = this->lookahead_byte(0);
+    size_t bytes_parsed = 0;
+    acpi::aml::TermArg termarg;
+    switch (next_byte)
+    {
+    case acpi::aml::opcodes::BytePrefix:
+        this->parse_next_byte(); // Skip prefix
+        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
+        termarg.termarg.integer.data = this->parse_bytedata();
+        bytes_parsed += 2;
+        break;
+
+    case acpi::aml::opcodes::WordPrefix:
+        this->parse_next_byte(); // Skip prefix
+        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
+        termarg.termarg.integer.data = this->parse_worddata();
+        bytes_parsed += 3;
+        break;
+
+    case acpi::aml::opcodes::DWordPrefix:
+        this->parse_next_byte(); // Skip prefix
+        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
+        termarg.termarg.integer.data = this->parse_dworddata();
+        bytes_parsed += 5;
+        break;
+
+    case acpi::aml::opcodes::QWordPrefix:
+        this->parse_next_byte(); // Skip prefix
+        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
+        termarg.termarg.integer.data = this->parse_qworddata();
+        bytes_parsed += 9;
+        break;
+    
+    default:
+        std::cerr << "Unknown TermArg next bytestream value: " << static_cast<uint64_t>(next_byte) << std::endl;
+        throw std::runtime_error("Unknown TermArg bytestream value");
+        break;
+    }
+    return std::pair<acpi::aml::TermArg, size_t>(termarg, bytes_parsed);
+}
+
+std::pair<acpi::aml::TermArg, size_t> acpi::aml::parser::parse_termarg(acpi::aml::TermArgsTypes type){
+    switch (type)
+    {
+    case acpi::aml::TermArgsTypes::Integer:
+        return this->parse_termarg_integer();
+        break;
+    
+    default:
+        std::ostringstream stream;
+        stream << "Unimplemented TermArg type: ";
+        stream << acpi::aml::TermArgsTypes_to_string(type);
+        throw std::runtime_error(stream.str());
+        break;
+    }
+}
+
 void acpi::aml::parser::parse_ext_opcode(){
     uint8_t ext_opcode = this->parse_next_byte();
 
@@ -236,6 +321,10 @@ void acpi::aml::parser::parse_ext_opcode(){
     {
     case acpi::aml::opcodes::ext_ProcessorOp:
         this->parse_processorop();
+        break;
+
+    case acpi::aml::opcodes::ext_OpRegionOp:
+        this->parse_opregion();
         break;
 
     default:

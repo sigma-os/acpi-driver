@@ -5,6 +5,7 @@
 
 #include <acpi/tables.h>
 
+#include <acpi/aml/aml_types.h>
 #include <acpi/aml/opcodes.h>
 #include <acpi/aml/aot_node.h>
 
@@ -16,7 +17,7 @@
 
 namespace acpi::aml
 {
-    
+
     class parser {
         public:
         parser(acpi::tables::table* table): ip(0), code(table->data), code_header(reinterpret_cast<acpi::tables::sdt_header*>(table)) {}
@@ -43,10 +44,13 @@ namespace acpi::aml
         uint64_t parse_qworddata();
 
         void parse_termlist(size_t bytes_to_parse);
+        std::pair<acpi::aml::TermArg, size_t> parse_termarg_integer();
+        std::pair<acpi::aml::TermArg, size_t> parse_termarg(acpi::aml::TermArgsTypes type);
 
         void parse_scopeop();
         void parse_processorop();
         void parse_methodop();
+        void parse_opregion();
 
         uint64_t ip;
         uint8_t* code;
