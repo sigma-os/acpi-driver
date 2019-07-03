@@ -52,7 +52,7 @@ namespace acpi::aml
             _field_element field_element;
             struct _name {
                 acpi::aml::aot_node_types type;
-                //TODO: add DataRefObject
+                acpi::aml::object object;
             };
             _name name;
         };
@@ -137,6 +137,9 @@ namespace acpi::aml
                 stream << "[FieldElement: Length: 0x";
                 stream << std::hex << type.field_element.length << " Type: " << acpi::aml::FieldElementTypes_to_string(type.field_element.field_element_type) << ", Flags: 0x";
                 stream << std::hex << static_cast<uint64_t>(type.field_element.flags) << "]";
+                break;
+            case acpi::aml::aot_node_types::NAME:
+                stream << "[Name: Object: " << type.name.object << "]";
                 break;
             default:
                 stream << "None";

@@ -44,9 +44,18 @@ namespace acpi::aml
         uint64_t parse_qworddata();
 
         void parse_termlist(size_t bytes_to_parse);
-        std::pair<acpi::aml::TermArg, size_t> parse_termarg_integer();
-        std::pair<acpi::aml::TermArg, size_t> parse_termarg(acpi::aml::TermArgsTypes type);
+        std::pair<acpi::aml::object, size_t> parse_termarg();
 
+        std::pair<uint64_t, size_t> parse_byteconst();
+        std::pair<uint64_t, size_t> parse_wordconst();
+        std::pair<uint64_t, size_t> parse_dwordconst();
+        std::pair<uint64_t, size_t> parse_qwordconst();
+
+        std::pair<acpi::aml::object, size_t> parse_computational_data();
+        std::pair<acpi::aml::object, size_t> parse_data_object();
+        std::pair<acpi::aml::object, size_t> parse_data_ref_object();
+
+        void parse_nameop();
         void parse_scopeop();
         void parse_processorop();
         void parse_methodop();

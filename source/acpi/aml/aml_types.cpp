@@ -1,25 +1,25 @@
 #include <acpi/aml/aml_types.h>
 
-std::string acpi::aml::TermArgsTypes_to_string(acpi::aml::TermArgsTypes type){
+std::string acpi::aml::object_types_to_string(acpi::aml::object_types type){
     switch (type)
     {
-    case acpi::aml::TermArgsTypes::Integer:
+    case acpi::aml::object_types::Integer:
         return "Integer";
         break;
 
-    case acpi::aml::TermArgsTypes::Buffer:
+    case acpi::aml::object_types::Buffer:
         return "Buffer";
         break;
 
-    case acpi::aml::TermArgsTypes::String:
+    case acpi::aml::object_types::String:
         return "String";
         break;
 
-    case acpi::aml::TermArgsTypes::ObjectReference:
+    case acpi::aml::object_types::ObjectReference:
         return "ObjectReference";
         break;
     
-    case acpi::aml::TermArgsTypes::Package:
+    case acpi::aml::object_types::Package:
         return "Package";
         break;
     

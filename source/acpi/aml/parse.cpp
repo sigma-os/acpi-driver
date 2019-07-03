@@ -147,6 +147,7 @@ std::pair<std::string, size_t> acpi::aml::parser::parse_namestring(){
 }
 
 
+// TODO: If the name is an existing object parse into that
 void acpi::aml::parser::parse_scopeop(){
     acpi::aml::aot_node node;
 
@@ -236,13 +237,13 @@ void acpi::aml::parser::parse_opregionop(){
     node.pkg_length++;
     node.type_specific_data.opregion.space = RegionSpace;
 
-    auto [RegionOffset, regionoffset_size] = this->parse_termarg(acpi::aml::TermArgsTypes::Integer);
+    auto [RegionOffset, regionoffset_size] = this->parse_termarg();
     node.pkg_length += regionoffset_size;
-    node.type_specific_data.opregion.offset = RegionOffset.termarg.integer.data;
+    node.type_specific_data.opregion.offset = RegionOffset.integer.data;
 
-    auto [RegionLen, regionlen_size] = this->parse_termarg(acpi::aml::TermArgsTypes::Integer);
+    auto [RegionLen, regionlen_size] = this->parse_termarg();
     node.pkg_length += regionlen_size;
-    node.type_specific_data.opregion.len = RegionLen.termarg.integer.data;
+    node.type_specific_data.opregion.len = RegionLen.integer.data;
 
     this->abstract_object_tree.insert(*(this->current_parent), node);
 }
@@ -334,6 +335,25 @@ void acpi::aml::parser::parse_deviceop(){
     this->current_parent = previous_parent;
 }
 
+void acpi::aml::parser::parse_nameop(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type_specific_data.name.type = acpi::aml::aot_node_types::NAME;
+    node.reparse = false;
+
+    node.pkg_length = 0;
+
+    auto [name, name_bytes] = this->parse_namestring();
+    node.name = name;
+    node.pkg_length += name_bytes;
+
+    auto [object, size] = this->parse_data_ref_object();
+    node.pkg_length += size;
+    node.type_specific_data.name.object = object;
+
+    this->abstract_object_tree.insert(*(this->current_parent), node);
+}
+
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
     if(bytes_to_parse == 0) return;
     uint64_t original_ip = this->ip;
@@ -343,62 +363,156 @@ void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
     }
 }
 
-std::pair<acpi::aml::TermArg, size_t> acpi::aml::parser::parse_termarg_integer(){
+// ByteConst := BytePrefix ByteData
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_byteconst(){
+    if(this->parse_next_byte() != acpi::aml::opcodes::BytePrefix) throw std::runtime_error("First byte of ByteConst is not BytePrefix");
+    return std::pair<uint64_t, size_t>(this->parse_bytedata(), 2);
+}
+
+// WordConst := WordPrefix WordData
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_wordconst(){
+    if(this->parse_next_byte() != acpi::aml::opcodes::WordPrefix) throw std::runtime_error("First byte of WordConst is not WordPrefix");
+    return std::pair<uint64_t, size_t>(this->parse_worddata(), 3);
+}
+
+// DWordConst := DWordPrefix DWordData
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_dwordconst(){
+    if(this->parse_next_byte() != acpi::aml::opcodes::DWordPrefix) throw std::runtime_error("First byte of DWordConst is not DWordPrefix");
+    return std::pair<uint64_t, size_t>(this->parse_dworddata(), 5);
+}
+
+// QWordConst := QWordPrefix QWordData
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_qwordconst(){
+    if(this->parse_next_byte() != acpi::aml::opcodes::QWordPrefix) throw std::runtime_error("First byte of QWordConst is not QWordPrefix");
+    return std::pair<uint64_t, size_t>(this->parse_qworddata(), 9);
+}
+
+// ComputationalData := ByteConst | WordConst | DWordConst | QWordConst | String | ConstObj | RevisionOp | DefBuffer
+std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data(){
+    acpi::aml::object object;
+    size_t size_parsed = 0;
     uint8_t next_byte = this->lookahead_byte(0);
-    size_t bytes_parsed = 0;
-    acpi::aml::TermArg termarg;
     switch (next_byte)
     {
     case acpi::aml::opcodes::BytePrefix:
-        this->parse_next_byte(); // Skip prefix
-        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
-        termarg.termarg.integer.data = this->parse_bytedata();
-        bytes_parsed += 2;
+        {
+            auto [value, size] = this->parse_byteconst();
+            object.integer.type = acpi::aml::object_types::Integer;
+            object.integer.length = size;
+            object.integer.data = value;
+            size_parsed += size;
+        }   
         break;
-
+    
     case acpi::aml::opcodes::WordPrefix:
-        this->parse_next_byte(); // Skip prefix
-        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
-        termarg.termarg.integer.data = this->parse_worddata();
-        bytes_parsed += 3;
+        {
+            auto [value, size] = this->parse_wordconst();
+            object.integer.type = acpi::aml::object_types::Integer;
+            object.integer.length = size;
+            object.integer.data = value;
+            size_parsed += size;
+        }
         break;
 
     case acpi::aml::opcodes::DWordPrefix:
-        this->parse_next_byte(); // Skip prefix
-        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
-        termarg.termarg.integer.data = this->parse_dworddata();
-        bytes_parsed += 5;
+        {
+            auto [value, size] = this->parse_dwordconst();
+            object.integer.type = acpi::aml::object_types::Integer;
+            object.integer.length = size;
+            object.integer.data = value;
+            size_parsed += size;
+        }
         break;
 
     case acpi::aml::opcodes::QWordPrefix:
-        this->parse_next_byte(); // Skip prefix
-        termarg.termarg.integer.type = acpi::aml::TermArgsTypes::Integer;
-        termarg.termarg.integer.data = this->parse_qworddata();
-        bytes_parsed += 9;
+        {
+            auto [value, size] = this->parse_qwordconst();
+            object.integer.type = acpi::aml::object_types::Integer;
+            object.integer.length = size;
+            object.integer.data = value;
+            size_parsed += size;
+        }
         break;
     
+    //case acpi::aml::opcodes::StringPrefix: // String := StringPrefix AsciiCharList NullChar
+    //    break; // TODO
+
     default:
-        std::cerr << "Unknown TermArg next bytestream value: " << static_cast<uint64_t>(next_byte) << std::endl;
-        throw std::runtime_error("Unknown TermArg bytestream value");
+        std::cerr << "Unknown ComputeData next bytestream value: " << static_cast<uint64_t>(next_byte) << std::endl;
+        throw std::runtime_error("Unknown ComputeData bytestream value");
         break;
     }
-    return std::pair<acpi::aml::TermArg, size_t>(termarg, bytes_parsed);
+
+    return std::pair<acpi::aml::object, size_t>(object, size_parsed);
 }
 
-std::pair<acpi::aml::TermArg, size_t> acpi::aml::parser::parse_termarg(acpi::aml::TermArgsTypes type){
-    switch (type)
+// DataObject := ComputationalData | DefPackage | DefVarPackage
+std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_data_object(){
+    acpi::aml::object object;
+    size_t size_parsed = 0;
+
+    uint8_t next_byte = this->lookahead_byte(0);
+    switch (next_byte)
     {
-    case acpi::aml::TermArgsTypes::Integer:
-        return this->parse_termarg_integer();
+    case acpi::aml::opcodes::PackageOp:
+        throw std::runtime_error("DataObject: Have not implemented DefPackage");
         break;
     
+    case acpi::aml::opcodes::VarPackageOp:
+        throw std::runtime_error("DataObject: Have not implemented DefVarPackage");
+        break;
+    
+    // No Package or VarPackage well must be a ComputationalData then
     default:
-        std::ostringstream stream;
-        stream << "Unimplemented TermArg type: ";
-        stream << acpi::aml::TermArgsTypes_to_string(type);
-        throw std::runtime_error(stream.str());
+        auto [value, size] = this->parse_computational_data();
+        object = value;
+        size_parsed = size;
         break;
     }
+
+    return std::pair<acpi::aml::object, size_t>(object, size_parsed);
+}
+
+// DataRefObject := DataObject | ObjectReference | DDBHandle
+std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_data_ref_object(){
+    acpi::aml::object object;
+    size_t size_parsed = 0;
+
+    uint8_t next_byte = this->lookahead_byte(0);
+    switch (next_byte)
+    {
+    // I don't know what ObjectReference or DDBHandle are so just assume that is is an DataObject
+    
+    default:
+        auto [value, size] = this->parse_data_object();
+        object = value;
+        size_parsed = size;
+        break;
+    }
+
+
+    return std::pair<acpi::aml::object, size_t>(object, size_parsed);
+}
+
+// TermArg := Type2Opcode | DataObject | ArgObject | LocalObject
+std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_termarg(){
+    acpi::aml::object object;
+    size_t size_parsed = 0;
+
+    uint8_t next_byte = this->lookahead_byte(0);
+
+    switch (next_byte)
+    {
+    // Can't implement the other ones right now so assume that it's a DataObject
+    
+    default:
+        auto [value, size] = this->parse_data_object();
+        object = value;
+        size_parsed = size;
+        break;
+    }
+
+    return std::pair<acpi::aml::object, size_t>(object, size_parsed);
 }
 
 void acpi::aml::parser::parse_ext_opcode(){
@@ -436,6 +550,10 @@ void acpi::aml::parser::parse_opcode(){
     {
     case acpi::aml::opcodes::ExtOpPrefix:
         this->parse_ext_opcode();
+        break;
+
+    case acpi::aml::opcodes::NameOp:
+        this->parse_nameop();
         break;
 
     case acpi::aml::opcodes::ScopeOp:

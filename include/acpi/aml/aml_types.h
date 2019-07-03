@@ -5,23 +5,45 @@
 
 namespace acpi::aml
 {
-    enum class TermArgsTypes {Integer, Buffer, String, ObjectReference, Package};
-    std::string TermArgsTypes_to_string(acpi::aml::TermArgsTypes type);
+    enum class object_types {Integer, Buffer, String, ObjectReference, Package};
+    std::string object_types_to_string(acpi::aml::object_types type);
 
-    struct TermArg {
-        union _type {
-            acpi::aml::TermArgsTypes type;
-            struct _integer {
-                acpi::aml::TermArgsTypes type;
-                uint64_t data;
-            };
-            _integer integer;
+    union object {
+        acpi::aml::object_types type;
+        uint64_t length;
+        struct _integer {
+            acpi::aml::object_types type;
+            uint64_t length;
+            uint64_t data;
         };
-        _type termarg;
+        _integer integer;
+
+        friend std::ostream& operator<<(std::ostream& os, const object& m){
+            return os << "[Object: Type: " << acpi::aml::object_types_to_string(m.type) << ", Length: 0x" << std::hex << m.length << ", Value: " << acpi::aml::object::data_to_string(m) << "]";
+        }
+
+        static std::string data_to_string(object ob){
+            std::ostringstream stream;
+            switch (ob.type)
+            {
+            case acpi::aml::object_types::Integer:
+                stream << ob.integer.data;
+                break;
+            
+            default:
+                stream << "None";
+                break;
+            }
+
+            return stream.str();
+        }
     };
 
     enum class FieldElementTypes {NamedField, ConnectField}; // The rest of the field types aren't dumped into the tree
     std::string FieldElementTypes_to_string(acpi::aml::FieldElementTypes type);
+
+
+    
 } // namespace acpi::aml
 
 
