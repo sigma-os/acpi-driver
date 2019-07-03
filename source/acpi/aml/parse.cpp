@@ -220,7 +220,7 @@ void acpi::aml::parser::parse_methodop(){
     this->abstract_object_tree.insert(*(this->current_parent), node);
 }
 
-void acpi::aml::parser::parse_opregion(){
+void acpi::aml::parser::parse_opregionop(){
     acpi::aml::aot_node node;
     node.byte_offset = this->ip;
     node.type_specific_data.opregion.type = acpi::aml::aot_node_types::OPREGION;
@@ -247,7 +247,7 @@ void acpi::aml::parser::parse_opregion(){
     this->abstract_object_tree.insert(*(this->current_parent), node);
 }
 
-void acpi::aml::parser::parse_field(){
+void acpi::aml::parser::parse_fieldop(){
     acpi::aml::aot_node node;
     node.byte_offset = this->ip;
     node.type_specific_data.processor.type = acpi::aml::aot_node_types::FIELD;
@@ -308,6 +308,28 @@ void acpi::aml::parser::parse_field(){
             break;  
         }
     }
+
+    this->current_parent = previous_parent;
+}
+
+void acpi::aml::parser::parse_deviceop(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type_specific_data.type = acpi::aml::aot_node_types::DEVICE;
+    node.reparse = true;
+
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
+    node.pkg_length = pkglength;
+    pkglength -= n_pkglength_bytes;
+
+    auto [s, n_namestring_bytes] = this->parse_namestring();
+    node.name = s;
+    pkglength -= n_namestring_bytes;
+
+    tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
+    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
+
+    this->parse_termlist(pkglength);
 
     this->current_parent = previous_parent;
 }
@@ -389,11 +411,15 @@ void acpi::aml::parser::parse_ext_opcode(){
         break;
 
     case acpi::aml::opcodes::ext_OpRegionOp:
-        this->parse_opregion();
+        this->parse_opregionop();
         break;
 
     case acpi::aml::opcodes::ext_FieldOp:
-        this->parse_field();
+        this->parse_fieldop();
+        break;
+
+    case acpi::aml::opcodes::ext_DeviceOp:
+        this->parse_deviceop();
         break;
 
     default:

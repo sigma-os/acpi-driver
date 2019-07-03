@@ -50,8 +50,9 @@ namespace acpi::aml
         void parse_scopeop();
         void parse_processorop();
         void parse_methodop();
-        void parse_opregion();
-        void parse_field();
+        void parse_opregionop();
+        void parse_fieldop();
+        void parse_deviceop();
 
         uint64_t ip;
         uint8_t* code;

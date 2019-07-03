@@ -6,7 +6,7 @@
 
 namespace acpi::aml
 {
-    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD, OPREGION, FIELD, FIELD_ELEMENT};
+    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD, OPREGION, FIELD, FIELD_ELEMENT, DEVICE, NAME};
 
     struct aot_node {
         std::string name;
@@ -50,6 +50,11 @@ namespace acpi::aml
                 // TODO: Base
             };
             _field_element field_element;
+            struct _name {
+                acpi::aml::aot_node_types type;
+                //TODO: add DataRefObject
+            };
+            _name name;
         };
         _type_specific_data type_specific_data;
         
@@ -87,6 +92,14 @@ namespace acpi::aml
 
             case acpi::aml::aot_node_types::FIELD_ELEMENT:
                 return "FieldElement";
+                break;
+
+            case acpi::aml::aot_node_types::DEVICE:
+                return "Device";
+                break;
+
+            case acpi::aml::aot_node_types::NAME:
+                return "Name";
                 break;
             
             default:
