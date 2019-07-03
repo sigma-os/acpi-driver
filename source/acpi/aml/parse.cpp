@@ -247,6 +247,71 @@ void acpi::aml::parser::parse_opregion(){
     this->abstract_object_tree.insert(*(this->current_parent), node);
 }
 
+void acpi::aml::parser::parse_field(){
+    acpi::aml::aot_node node;
+    node.byte_offset = this->ip;
+    node.type_specific_data.processor.type = acpi::aml::aot_node_types::FIELD;
+    node.reparse = false;
+
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
+    node.pkg_length = pkglength;
+    pkglength -= n_pkglength_bytes;
+
+    auto [s, n_namestring_bytes] = this->parse_namestring();
+    node.name = s;
+    pkglength -= n_namestring_bytes;
+
+    node.type_specific_data.field.field_flags = this->parse_bytedata();
+    pkglength--;
+
+
+    tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
+    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
+
+    uint8_t flags = node.type_specific_data.field.field_flags;
+    size_t end_ip = this->ip + pkglength;
+    while(this->ip < end_ip){
+        uint8_t next_byte = this->lookahead_byte(0);
+        switch (next_byte)
+        {
+        case 0x0: // Reserved Field
+            this->parse_next_byte();
+            this->parse_pkglength();
+            break;
+
+        case 1: // Access field
+            this->parse_next_byte();
+            flags = this->parse_bytedata();
+            this->parse_next_byte();
+        case 2:
+            throw std::runtime_error("Error ConnectField unimplemented");
+            break;
+
+        default:
+            {
+                acpi::aml::aot_node node;
+                node.byte_offset = this->ip;
+                node.type_specific_data.processor.type = acpi::aml::aot_node_types::FIELD_ELEMENT;
+                node.reparse = false;
+
+                auto [name, name_length] = this->parse_nameseg();
+                node.name = name;
+
+                auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
+                node.pkg_length = pkglength;
+                node.type_specific_data.field_element.length = pkglength;
+                node.type_specific_data.field_element.flags = flags;
+                node.type_specific_data.field_element.field_element_type = acpi::aml::FieldElementTypes::NamedField;
+
+                this->abstract_object_tree.insert(*(this->current_parent), node);
+            }
+            break;  
+        }
+    }
+
+    this->current_parent = previous_parent;
+}
+
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){
     if(bytes_to_parse == 0) return;
     uint64_t original_ip = this->ip;
@@ -325,6 +390,10 @@ void acpi::aml::parser::parse_ext_opcode(){
 
     case acpi::aml::opcodes::ext_OpRegionOp:
         this->parse_opregion();
+        break;
+
+    case acpi::aml::opcodes::ext_FieldOp:
+        this->parse_field();
         break;
 
     default:

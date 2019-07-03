@@ -28,3 +28,20 @@ std::string acpi::aml::TermArgsTypes_to_string(acpi::aml::TermArgsTypes type){
         break;
     }
 }
+
+std::string acpi::aml::FieldElementTypes_to_string(acpi::aml::FieldElementTypes type){
+    switch (type)
+    {
+    case acpi::aml::FieldElementTypes::NamedField:
+        return "NamedField";
+        break;
+
+    case acpi::aml::FieldElementTypes::ConnectField:
+        return "ConnectField";
+        break;
+
+    default:
+        return "Unknown";
+        break;
+    }
+}

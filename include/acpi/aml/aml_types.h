@@ -19,6 +19,9 @@ namespace acpi::aml
         };
         _type termarg;
     };
+
+    enum class FieldElementTypes {NamedField, ConnectField}; // The rest of the field types aren't dumped into the tree
+    std::string FieldElementTypes_to_string(acpi::aml::FieldElementTypes type);
 } // namespace acpi::aml
 
 

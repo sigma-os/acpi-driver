@@ -2,10 +2,11 @@
 #define SIGMA_ACPI_SERVER_AML_AOT_NODE
 
 #include <common.h>
+#include  <acpi/aml/aml_types.h>
 
 namespace acpi::aml
 {
-    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD, OPREGION};
+    enum class aot_node_types {ROOT, SCOPE, PROCESSOR, METHOD, OPREGION, FIELD, FIELD_ELEMENT};
 
     struct aot_node {
         std::string name;
@@ -36,6 +37,19 @@ namespace acpi::aml
                 uint64_t len; // TermArg => Integer
             };
             _opregion opregion;
+            struct _field {
+                acpi::aml::aot_node_types type;
+                uint8_t field_flags;
+            };
+            _field field;
+            struct _field_element {
+                acpi::aml::aot_node_types type;
+                acpi::aml::FieldElementTypes field_element_type;
+                uint64_t length;
+                uint8_t flags;
+                // TODO: Base
+            };
+            _field_element field_element;
         };
         _type_specific_data type_specific_data;
         
@@ -66,6 +80,14 @@ namespace acpi::aml
             case acpi::aml::aot_node_types::OPREGION:
                 return "OpRegion";
                 break;
+
+            case acpi::aml::aot_node_types::FIELD:
+                return "Field";
+                break;
+
+            case acpi::aml::aot_node_types::FIELD_ELEMENT:
+                return "FieldElement";
+                break;
             
             default:
                 return "Undefined";
@@ -93,6 +115,15 @@ namespace acpi::aml
                 stream << std::hex << static_cast<uint64_t>(type.opregion.type) << ", Offset: 0x";
                 stream << std::hex << type.opregion.offset << ", Size: 0x";
                 stream << std::hex << type.opregion.len << "]";
+                break;
+            case acpi::aml::aot_node_types::FIELD:
+                stream << "[Field: Flags: 0x";
+                stream << std::hex << static_cast<uint64_t>(type.field.field_flags) << "]";
+                break;
+            case acpi::aml::aot_node_types::FIELD_ELEMENT:
+                stream << "[FieldElement: Length: 0x";
+                stream << std::hex << type.field_element.length << " Type: " << acpi::aml::FieldElementTypes_to_string(type.field_element.field_element_type) << ", Flags: 0x";
+                stream << std::hex << static_cast<uint64_t>(type.field_element.flags) << "]";
                 break;
             default:
                 stream << "None";
