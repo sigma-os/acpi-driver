@@ -51,6 +51,8 @@ namespace acpi::aml
         std::pair<uint64_t, size_t> parse_dwordconst();
         std::pair<uint64_t, size_t> parse_qwordconst();
 
+        std::tuple<uint8_t*, size_t, size_t> parse_bufferop();
+
         std::pair<acpi::aml::object, size_t> parse_computational_data();
         std::pair<acpi::aml::object, size_t> parse_data_object();
         std::pair<acpi::aml::object, size_t> parse_data_ref_object();

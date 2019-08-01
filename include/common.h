@@ -12,7 +12,7 @@
 #include <fstream>
 #include <exception>
 #include <vector>
-
+#include <memory>
 #include <iostream>
 
 #endif

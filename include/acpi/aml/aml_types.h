@@ -8,15 +8,22 @@ namespace acpi::aml
     enum class object_types {Integer, Buffer, String, ObjectReference, Package};
     std::string object_types_to_string(acpi::aml::object_types type);
 
-    union object {
+    struct object {
         acpi::aml::object_types type;
-        uint64_t length;
-        struct _integer {
-            acpi::aml::object_types type;
-            uint64_t length;
-            uint64_t data;
+        size_t length;
+        union _data
+        {
+            struct _integer {
+                uint64_t num;
+            };
+            _integer integer;
+            struct _buffer {
+                uint8_t* ptr;
+                size_t ptr_len;
+            };
+            _buffer buffer;
         };
-        _integer integer;
+        _data data;
 
         friend std::ostream& operator<<(std::ostream& os, const object& m){
             return os << "[Object: Type: " << acpi::aml::object_types_to_string(m.type) << ", Length: 0x" << std::hex << m.length << ", Value: " << acpi::aml::object::data_to_string(m) << "]";
@@ -27,7 +34,10 @@ namespace acpi::aml
             switch (ob.type)
             {
             case acpi::aml::object_types::Integer:
-                stream << ob.integer.data;
+                stream << ob.data.integer.num;
+                break;
+            case acpi::aml::object_types::Buffer:
+                stream << "Buffer";
                 break;
             
             default:
@@ -41,9 +51,6 @@ namespace acpi::aml
 
     enum class FieldElementTypes {NamedField, ConnectField}; // The rest of the field types aren't dumped into the tree
     std::string FieldElementTypes_to_string(acpi::aml::FieldElementTypes type);
-
-
-    
 } // namespace acpi::aml
 
 

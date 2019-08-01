@@ -239,11 +239,11 @@ void acpi::aml::parser::parse_opregionop(){
 
     auto [RegionOffset, regionoffset_size] = this->parse_termarg();
     node.pkg_length += regionoffset_size;
-    node.type_specific_data.opregion.offset = RegionOffset.integer.data;
+    node.type_specific_data.opregion.offset = RegionOffset.data.integer.num;
 
     auto [RegionLen, regionlen_size] = this->parse_termarg();
     node.pkg_length += regionlen_size;
-    node.type_specific_data.opregion.len = RegionLen.integer.data;
+    node.type_specific_data.opregion.len = RegionLen.data.integer.num;
 
     this->abstract_object_tree.insert(*(this->current_parent), node);
 }
@@ -387,6 +387,22 @@ std::pair<uint64_t, size_t> acpi::aml::parser::parse_qwordconst(){
     return std::pair<uint64_t, size_t>(this->parse_qworddata(), 9);
 }
 
+// BufferOp := BufferOp PkgLength BufferSize ByteList
+std::tuple<uint8_t*, size_t, size_t> acpi::aml::parser::parse_bufferop(){
+    if(this->parse_next_byte() != acpi::aml::opcodes::BufferOp) throw std::runtime_error("First byte of DefBuffer is not BufferOp");
+    
+    auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();;
+
+    auto [buffer_size, buffer_size_len] = this->parse_termarg(); // Evaluates to Integer
+
+    size_t len = buffer_size.data.integer.num;
+    auto* ptr = new uint8_t[len];
+
+    for(uint64_t i = 0; i < len; i++) ptr[i] = this->parse_next_byte();
+
+    return std::tuple<uint8_t*, size_t, size_t>(ptr, len, pkglength);
+}
+
 // ComputationalData := ByteConst | WordConst | DWordConst | QWordConst | String | ConstObj | RevisionOp | DefBuffer
 std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data(){
     acpi::aml::object object;
@@ -397,9 +413,9 @@ std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data
     case acpi::aml::opcodes::BytePrefix:
         {
             auto [value, size] = this->parse_byteconst();
-            object.integer.type = acpi::aml::object_types::Integer;
-            object.integer.length = size;
-            object.integer.data = value;
+            object.type = acpi::aml::object_types::Integer;
+            object.length = size;
+            object.data.integer.num = value;
             size_parsed += size;
         }   
         break;
@@ -407,9 +423,9 @@ std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data
     case acpi::aml::opcodes::WordPrefix:
         {
             auto [value, size] = this->parse_wordconst();
-            object.integer.type = acpi::aml::object_types::Integer;
-            object.integer.length = size;
-            object.integer.data = value;
+            object.type = acpi::aml::object_types::Integer;
+            object.length = size;
+            object.data.integer.num = value;
             size_parsed += size;
         }
         break;
@@ -417,9 +433,9 @@ std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data
     case acpi::aml::opcodes::DWordPrefix:
         {
             auto [value, size] = this->parse_dwordconst();
-            object.integer.type = acpi::aml::object_types::Integer;
-            object.integer.length = size;
-            object.integer.data = value;
+            object.type = acpi::aml::object_types::Integer;
+            object.length = size;
+            object.data.integer.num = value;
             size_parsed += size;
         }
         break;
@@ -427,18 +443,27 @@ std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data
     case acpi::aml::opcodes::QWordPrefix:
         {
             auto [value, size] = this->parse_qwordconst();
-            object.integer.type = acpi::aml::object_types::Integer;
-            object.integer.length = size;
-            object.integer.data = value;
+            object.type = acpi::aml::object_types::Integer;
+            object.length = size;
+            object.data.integer.num = value;
             size_parsed += size;
         }
         break;
-    
+    case acpi::aml::opcodes::BufferOp:
+        {
+            auto [ptr, len, size] = this->parse_bufferop();
+            object.type = acpi::aml::object_types::Buffer;
+            object.length = size;
+            object.data.buffer.ptr_len = len;
+            object.data.buffer.ptr = ptr;
+        }
+        break;
+
     //case acpi::aml::opcodes::StringPrefix: // String := StringPrefix AsciiCharList NullChar
     //    break; // TODO
 
     default:
-        std::cerr << "Unknown ComputeData next bytestream value: " << static_cast<uint64_t>(next_byte) << std::endl;
+        std::cerr << "Unknown ComputeData next bytestream value: 0x" << std::hex << static_cast<uint64_t>(next_byte) << std::endl;
         throw std::runtime_error("Unknown ComputeData bytestream value");
         break;
     }
