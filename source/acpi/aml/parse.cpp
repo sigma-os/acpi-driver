@@ -483,6 +483,18 @@ std::tuple<uint8_t*, size_t, size_t> acpi::aml::parser::parse_bufferop(){
     return std::tuple<uint8_t*, size_t, size_t>(ptr, len, pkglength);
 }
 
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_zeroop(){
+    return std::pair(0, 1);
+}
+
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_oneop(){
+    return std::pair(1, 1);
+}
+
+std::pair<uint64_t, size_t> acpi::aml::parser::parse_onesop(){
+    return std::pair(~(uint64_t)(0), 1);
+}
+
 // ComputationalData := ByteConst | WordConst | DWordConst | QWordConst | String | ConstObj | RevisionOp | DefBuffer
 std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data(){
     acpi::aml::object object;
@@ -536,12 +548,66 @@ std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_computational_data
             object.length = size;
             object.data.buffer.ptr_len = len;
             object.data.buffer.ptr = ptr;
+            size_parsed += size;
+        }
+        break;
+    
+    case acpi::aml::opcodes::ZeroOp:
+        [[fallthrough]];
+    case acpi::aml::opcodes::OneOp:
+        [[fallthrough]];
+    case acpi::aml::opcodes::OnesOp:
+        // Its a ConstObj
+        {
+            auto [var, size] = this->parse_const_object();
+            object = var; // Safe since its an integer
+            size_parsed += size;
         }
         break;
 
     //case acpi::aml::opcodes::StringPrefix: // String := StringPrefix AsciiCharList NullChar
     //    break; // TODO
 
+    default:
+        std::cerr << "Unknown ComputeData next bytestream value: 0x" << std::hex << static_cast<uint64_t>(next_byte) << std::endl;
+        throw std::runtime_error("Unknown ComputeData bytestream value");
+        break;
+    }
+
+    return std::pair<acpi::aml::object, size_t>(object, size_parsed);
+}
+
+// ConstObj := ZeroOp | OneOp | OnesOp
+std::pair<acpi::aml::object, size_t> acpi::aml::parser::parse_const_object(){
+    acpi::aml::object object;
+    size_t size_parsed = 0;
+    uint8_t next_byte = this->parse_next_byte();
+    switch (next_byte)
+    {
+    case acpi::aml::opcodes::ZeroOp:
+        {
+            auto [val, len] = this->parse_zeroop();
+            object.type = acpi::aml::object_types::Integer;
+            object.length = len;
+            object.data.integer.num = val;
+        }
+        break;
+    case acpi::aml::opcodes::OneOp:
+        {
+            auto [val, len] = this->parse_oneop();
+            object.type = acpi::aml::object_types::Integer;
+            object.length = len;
+            object.data.integer.num = val;
+        }
+        break;
+    case acpi::aml::opcodes::OnesOp:
+        {
+            auto [val, len] = this->parse_onesop();
+            object.type = acpi::aml::object_types::Integer;
+            object.length = len;
+            object.data.integer.num = val;
+        }
+        break;
     default:
         std::cerr << "Unknown ComputeData next bytestream value: 0x" << std::hex << static_cast<uint64_t>(next_byte) << std::endl;
         throw std::runtime_error("Unknown ComputeData bytestream value");

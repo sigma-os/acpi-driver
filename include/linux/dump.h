@@ -7,6 +7,7 @@
 namespace linux
 {
     std::vector<uint8_t> dump_table(std::string signature);
+    std::vector<uint8_t> read_file(std::string filename);
 } // namespace linux
 
 

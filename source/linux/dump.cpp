@@ -20,7 +20,11 @@ std::vector<uint8_t> linux::dump_table(std::string signature){
     filename << signature;
     filename << ".dat";
 
-    std::ifstream file(filename.str().c_str(), std::ios::binary);
+    return linux::read_file(filename.str());
+}
+
+std::vector<uint8_t> linux::read_file(std::string filename){
+    std::ifstream file(filename.c_str(), std::ios::binary);
 
     return std::vector<uint8_t>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }

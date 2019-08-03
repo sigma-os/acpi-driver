@@ -48,6 +48,10 @@ namespace acpi::aml
         void parse_termlist(size_t bytes_to_parse);
         std::pair<acpi::aml::object, size_t> parse_termarg();
 
+        std::pair<uint64_t, size_t> parse_zeroop();
+        std::pair<uint64_t, size_t> parse_oneop();
+        std::pair<uint64_t, size_t> parse_onesop();
+
         std::pair<uint64_t, size_t> parse_byteconst();
         std::pair<uint64_t, size_t> parse_wordconst();
         std::pair<uint64_t, size_t> parse_dwordconst();
@@ -56,6 +60,7 @@ namespace acpi::aml
         std::tuple<uint8_t*, size_t, size_t> parse_bufferop();
 
         std::pair<acpi::aml::object, size_t> parse_computational_data();
+        std::pair<acpi::aml::object, size_t> parse_const_object();
         std::pair<acpi::aml::object, size_t> parse_data_object();
         std::pair<acpi::aml::object, size_t> parse_data_ref_object();
 
