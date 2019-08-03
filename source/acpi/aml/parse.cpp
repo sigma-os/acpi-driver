@@ -146,25 +146,104 @@ std::pair<std::string, size_t> acpi::aml::parser::parse_namestring(){
     return std::pair<std::string, size_t>(string, n_bytes_parsed);
 }
 
+// If the node doesnt exist, create it and return it, caller should fill out the info
+tree_node<acpi::aml::aot_node>* acpi::aml::parser::resolve_path(std::string path){
+    auto namesegs = std::vector<std::pair<std::string, int>>();
+                                    //    Actual Seg,  Type
+                                    //                 0 = Root char '\'
+                                    //                 1 = Parent prefix '^'
+                                    //                 2 = Actual segment
+
+    for(uint64_t i = 0; i < path.length();){
+        char c = path[i];
+
+        switch(c){
+        case '\\': // Root char
+            if(i != 0){
+                std::cerr << "Non first char root char in: resolve_path" << std::endl;
+                throw std::runtime_error("Unexpected char in resolve_path");
+            }
+            namesegs.push_back({path.substr(i, 1), 0});
+            i++;
+            break;
+        case '^':
+            namesegs.push_back({path.substr(i, 1), 1});
+            i++;
+            break;
+        
+        case '.': // Name Separator
+            i++; // Skip segment separator
+            break;
+        default: // Just a local NameSeg
+            namesegs.push_back({path.substr(i, 4), 2}); // NameSeg is four characters
+            i += 4;
+            break;
+        }
+    }
+
+    auto* node = this->current_parent;
+
+    for(auto& it : namesegs){
+        auto [seg, type] = it;
+        switch (type)
+        {
+        case 0: // Root item, so current node is root
+            node = this->get_tree().get_root();
+            break;
+
+        case 1: // Parent Prefix, so go 1 up in the chain
+            if(node->parent != nullptr) node = node->parent;
+            else throw std::runtime_error("Node doesn't have parent");
+            break;
+
+        case 2: // Actual segment, this is where the magic happens
+        {   
+            bool found = false;
+            for(auto& child : node->children){
+                if(child->item.name == seg){
+                    node = child;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                // The object doesn't exist i guess, create a new node
+                return this->get_tree().insert(*this->current_parent, {});
+            }
+            break;
+        }
+        default:
+            std::cerr << "Unknown resolve_path path type: " << std::hex << type << std::endl;
+            throw std::runtime_error("Unknown resolve_path path type");
+            break;
+        }
+    }
+
+    return node;
+}
 
 // TODO: If the name is an existing object parse into that
 void acpi::aml::parser::parse_scopeop(){
-    acpi::aml::aot_node node;
-
-    node.byte_offset = this->ip;
-    node.type_specific_data.type = acpi::aml::aot_node_types::SCOPE;
-    node.reparse = false;
-
+    uint64_t byte_offset = this->ip;
     auto [n_pkglength_bytes, pkglength] = this->parse_pkglength();
-    node.pkg_length = pkglength;
+    uint64_t pkg_length = pkglength;
     pkglength -= n_pkglength_bytes;
 
     auto [s, n_namestring_bytes] = this->parse_namestring();
-    node.name = s;
+    std::string name = s;
     pkglength -= n_namestring_bytes;
+    
+
+    auto* node = resolve_path(name);
+    node->item.byte_offset = byte_offset;
+    node->item.pkg_length = pkg_length;
+    node->item.name = name;
+    node->item.type_specific_data.type = acpi::aml::aot_node_types::SCOPE;
+    node->item.reparse = false;
 
     tree_node<acpi::aml::aot_node>* previous_parent = this->current_parent;
-    this->current_parent = this->abstract_object_tree.insert(*(this->current_parent), node);
+    this->current_parent = node;
+
 
     this->parse_termlist(pkglength);
 
@@ -336,22 +415,23 @@ void acpi::aml::parser::parse_deviceop(){
 }
 
 void acpi::aml::parser::parse_nameop(){
-    acpi::aml::aot_node node;
-    node.byte_offset = this->ip;
-    node.type_specific_data.name.type = acpi::aml::aot_node_types::NAME;
-    node.reparse = false;
-
-    node.pkg_length = 0;
+    uint64_t byte_offset = this->ip;
+    uint64_t pkg_length = 0;
 
     auto [name, name_bytes] = this->parse_namestring();
-    node.name = name;
-    node.pkg_length += name_bytes;
+    pkg_length += name_bytes;
+
+    auto* node = this->resolve_path(name);
+    node->item.byte_offset = byte_offset;
+    node->item.name = name;
+    node->item.type_specific_data.name.type = acpi::aml::aot_node_types::NAME;
+    node->item.reparse = false;
 
     auto [object, size] = this->parse_data_ref_object();
-    node.pkg_length += size;
-    node.type_specific_data.name.object = object;
+    pkg_length += size;
 
-    this->abstract_object_tree.insert(*(this->current_parent), node);
+    node->item.type_specific_data.name.object = object;
+    node->item.pkg_length = pkg_length;
 }
 
 void acpi::aml::parser::parse_termlist(size_t bytes_to_parse){

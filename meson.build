@@ -1,5 +1,5 @@
 
-project('sigma-acpi-driver', 'cpp', default_options : ['cpp_std=c++17'], version: '0.1.0')
+project('sigma-acpi-driver', 'cpp', version: '0.1.0')
 
 executable_name = 'acpi'
 
@@ -17,5 +17,9 @@ sources = files('source/main.cpp',
                 'source/acpi/aml/aml_types.cpp')
 
 includes = include_directories('include')
+
+cpp_args = ['-std=c++2a']
+
+add_global_arguments(cpp_args, language: 'cpp')
 
 executable(executable_name, sources, dependencies: deps, include_directories: includes)

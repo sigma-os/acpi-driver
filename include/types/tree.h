@@ -12,6 +12,7 @@ struct tree_node {
     }
     T item;
     std::vector<tree_node<T>*> children;
+    tree_node<T>* parent;
 };
 
 template<typename T>
@@ -32,6 +33,7 @@ class tree {
         tree_node<T>* child = node.children.back();
 
         child->item = item;
+        child->parent = &node;
 
         return child;
     }

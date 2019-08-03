@@ -1,3 +1,3 @@
 # acpi-driver
 
-Currently not working on it
+Currently not actively working on it
