@@ -38,7 +38,7 @@ namespace acpi::aml
         std::pair<std::string, size_t> parse_namepath();
         std::pair<std::string, size_t> parse_nameseg();
 
-        tree_node<acpi::aml::aot_node>* resolve_path(std::string path);
+        tree_node<acpi::aml::aot_node>* resolve_path(tree_node<acpi::aml::aot_node>* base_node, std::string path);
 
         uint8_t parse_bytedata();
         uint16_t parse_worddata();

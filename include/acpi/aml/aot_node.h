@@ -60,7 +60,10 @@ namespace acpi::aml
         
 
         friend std::ostream& operator<<(std::ostream& os, const aot_node& m){
-            return os << "[Name: " << m.name << ", Type: " << acpi::aml::aot_node::get_type_string(m.type_specific_data.type) << std::hex << ", Offset: 0x" << m.byte_offset << ", PkgLength: 0x" << m.pkg_length << ", Type specific data: " << acpi::aml::aot_node::get_type_data(m.type_specific_data) << "]";
+            std::string name;
+            if(m.name.length() >= 4) name = m.name.substr(m.name.length() - 4, 4);
+            else name = m.name;
+            return os << "[Name: " << name << ", Type: " << acpi::aml::aot_node::get_type_string(m.type_specific_data.type) << std::hex << ", Offset: 0x" << m.byte_offset << ", PkgLength: 0x" << m.pkg_length << ", Type specific data: " << acpi::aml::aot_node::get_type_data(m.type_specific_data) << "]";
         }
 
         static std::string get_type_string(acpi::aml::aot_node_types type){
